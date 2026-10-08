@@ -117,13 +117,12 @@ static void scan_chunk(struct worker_args *args, int collect_instances) {
     ssize_t line_length;
     long position = args-> start;
     
-    line = malloc(MAX_LINE_LENGTH);
     if (line == NULL) {
-        fclose(file);
         args-> failed =1;
         return;
     }
-
+    line = malloc(MAX_LINE_LENGTH);
+    
     if (args-> start > 0) {
         int previous;
 
@@ -132,24 +131,36 @@ static void scan_chunk(struct worker_args *args, int collect_instances) {
         } else {
             previous = fgetc(file);
 
-            if(fseek(file, args-> start, SEEK_SET) !=0) {
+            if (ferror(file)) {
+                
+                args-> failed =1;
+            }
+
+            else if(fseek(file, args-> start, SEEK_SET) !=0) {
                 args-> failed = 1;
             } else if (previous != '\n') {
-                (void)getline(&line, &capacity, file); 
+                line_length = getline(&line, &capacity, file);
+                if (line_length == -1) {
+                    if(ferror(file)) {
+                        args-> failed = 1;
+                    } else {
+                        position = args-> end;
+                    }
+                } else {
+                    position += line_length;
+                }
             }
         }
     }
-    while (!args-> failed) {
-
-        long line_start = ftell(file);
-        
-        if (line_start < 0 || line_start >= args-> end) {
-            break;
-        }
+    while (!args-> failed && position <args-> end) {
         line_length = getline(&line, &capacity, file);
-        if (line_length == -1) {
+        if(line_length == -1) {
+            if(ferror(file)) {
+                args-> failed = 1;
+            }
             break;
         }
+        position += line_length;
 
         int matches = count_line_matches(line, args-> target);
 
