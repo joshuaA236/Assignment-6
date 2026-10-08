@@ -13,9 +13,9 @@
 #define MAX_THREADS 4
 
 struct chunk_result {
-    struct: count;
     struct count_result instances;
     size_t capacity;
+    int count;
     int failed;
 };
 
@@ -174,24 +174,11 @@ static void scan_chunk(struct worker_args *args, int collect_instances) {
 
 }
 
-static void *count_worker(void *arg) {
-    struct worker_args * args = arg;
-    scan_chunk(args, 0);
-    return NULL;
-}
-
-static void *instance_worker(void *arg) {
-    struct worker_args *args = arg;
-    scan_chunk(args, 1);
-    return NULL;
-}
-
-static int setup_workers(char *filename,char *target, pthread_t **threads_out, struct worker_args **args_out, long *nthreads_out) {
+static int setup_chunks(char *filename,char *target, pthread_t **threads_out, struct worker_args **args_out, long *nthreads_out) {
     struct stat file_info;
     long file_size;
     long nthreads;
-    long chunk;
-    pthread_t *threads;
+    long chunk_size;
     struct worker_args *args;
 
     if(filename == NULL || target == NULL || target[0] == '\0' || stat(filename, &file_info) !=0 || file_info.st_size <=0) {
@@ -229,7 +216,6 @@ static int setup_workers(char *filename,char *target, pthread_t **threads_out, s
         args[i].end = (i == nthreads - 1) ? file_size : (i + 1) * chunk;
     }
 
-    *threads_out = threads;
     *args_out = args;
     *nthreads_out = nthreads;
     return 1;
@@ -253,84 +239,80 @@ static void run_workers(pthread_t *threads, struct worker_args * args,  long nth
 }
 
 int search_count(char *filename, char *target) {
-    long file_size;
-    long chunk_size;
+    long worker_args;
     long nthreads;
     int total = 0;
     int failed = 0;
 
-    if (!get_chunk_info(filename, target, &threads, &chunk_size, &nthreads)) {
+    if (!setup_chunks(filename, target, &args, &nthreads)) {
         return 0;
     }
 
-    struct chunk_result * chunk = malloc((size_t)nthreads * sizeof(*chunks));
-    if(chunks == NULL) {
-
-        return 0;
-    }
-
-    initialize_chunks(chunks, nthreads);
-
+#pragma omp parallel for num_threads(nthreads) schedule(static)
     for( long i = 0; i < nthreads; i++) {
-        long start = i * chunk_size;
-        long end = (i == thread_count - 1) ? file_size : (i+1) * chunk_size;
-
-        scan_chunk(filename, target, start, end, 0, &chunks[i]);
+        scan_chunk( &args[i] end, 0);
     }
-        free(chunks);
+
+    for (long i = 0; i < nthreads; i++) {
+        if(args[i].failed){
+            failed = 1;
+        }
+        total +=args[i].count;
+
+    }
+
+        free(args);
         return failed ? 0 : total;
 
 }
 
 struct count_result search_instance(char *filename,char *target){
     struct count_result result = {0, NULL};
-    long file_size;
-    long chunk_size;
+    struct worker_args *args;
     long nthreads;
     int total = 0;
     int failed = 0;
 
-    if (!get_chunk_info(filename, target, &threads, &chunk_size, &nthreads)) {
-        return 0;
-    }
-
-    struct chunk_result * chunk = malloc((size_t)nthreads * sizeof(*chunks));
-    if(chunks == NULL) {
-
+    if (!setup_chunks(filename, target, &args, &nthreads)) {
         return result;
     }
 
-    initialize_chunks(chunks, nthreads);
 
+#pragma omp parallel for num_threads(nthreads) schedule(static)
     for( int i = 0; i < nthreads; i++) {
-        long start = i * chunk_size;
-        long end = (i == thread_count - 1) ? file_size : (i+1) * chunk_size;
-
-        scan_chunk(filename, target, start, end, 0, &chunks[i]);
-
-        free(chunks);
-        return result;
+        
+        scan_chunk( &args[i] end, 1);
     }
 
-    if(total > 0) {
+    for (long i = 0; i < nthreads; i++) {
+        if(args[i].failed) {
+            failed = 1;
+        }
+
+        total += args[i].result.count;
+
+    }
+
+    if(!failed && total > 0) {
         result.instances = malloc((size_t) total * sizeof(*result.instances));
         if (result.instances == NULL) {
-            for (int i = 0; i < nthreads; i++) {
-                clear_result(&args[i].result);
+            failed = 1;
+        }
+    }
+
+    if (!failed) {
+        for(long i = 0; i < nthreads; i++) {
+            for(int j = 0; j args[i].result.count; j++) {
+                result.instance[result.count++] = args[i].result.instances[j];
+                args[i].result.instances[j] = NULL;
             }
-        free(chunks);
-            return result;
         }
     }
 
-    for (int i = 0; i < nthreads; i ++) {
-        for (int j = 0; j < chunks[i].instances.count; j++) {
-            result.instances[result.count++] = chunks[i].result.instances[j];
-        }
-        free(chunks[i].instances.instances);
-
+    for(long i = 0; i < nthreads; i++) {
+        clear_result(&args[i].result);
     }
 
-    free(chunks);
+    free(args);
     return result;
 }
