@@ -216,21 +216,21 @@ static int setup_chunks(char *filename,char *target, struct worker_args **args_o
     return 1;
 }
 
-static void run_workers (struct worker_args * args,  long nthreads, void *(*worker) (void *)) {
-    for(long i = 0; i < nthreads; i++) {
-        if (pthread_create(&threads[i], NULL, worker, &args[i]) == 0) {
-            args[i].started = 1;
+// static void run_workers (struct worker_args * args,  long nthreads, void *(*worker) (void *)) {
+//     for(long i = 0; i < nthreads; i++) {
+//         if (pthread_create(&threads[i], NULL, worker, &args[i]) == 0) {
+//             args[i].started = 1;
 
-        } else {
-            worker(&args[i]);
-        }
-    }
+//         } else {
+//             worker(&args[i]);
+//         }
+//     }
 
-    for (long i = 0; i < nthreads; i++) {
-        if (args[i].started) {
-            pthread_join(threads[i], NULL);
-        }
-    }
+//     for (long i = 0; i < nthreads; i++) {
+//         if (args[i].started) {
+//             pthread_join(threads[i], NULL);
+//         }
+//     }
 }
 
 int search_count(char *filename, char *target) {
