@@ -110,16 +110,15 @@ static void scan_chunk(struct worker_args *args, int collect_instances) {
     ssize_t line_length;
     long position = args-> start;
     
-    if (line == NULL) {
-        args-> failed =1;
+    if (file == NULL) {
+        args-> failed = 1;
         return;
     }
 
     line = malloc(MAX_LINE_LENGTH);
-
     if (line == NULL) {
         fclose(file);
-        args-> failed =1;
+        args-> failed = 1;
         return;
     }
     if (args-> start > 0) {

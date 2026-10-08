@@ -117,7 +117,7 @@ static void scan_chunk(struct worker_args *args, int collect_instances) {
     ssize_t line_length;
     long position = args-> start;
     
-    if (line == NULL) {
+    if (file == NULL) {
         args-> failed =1;
         return;
     }
