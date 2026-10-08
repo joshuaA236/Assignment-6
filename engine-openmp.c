@@ -33,7 +33,6 @@ struct worker_args {
 };
 
 static int count_line_matches(const char *line, const char *target) {
-    size_t target_length = strlen(target);
     const char *cursor = line;
     const char *match;
     int count =0; 
@@ -192,6 +191,9 @@ static int setup_chunks(char *filename,char *target, struct worker_args **args_o
     threads = malloc((size_t)nthreads * sizeof(*threads));
     args = malloc((size_t)nthreads * sizeof(*args));
 
+    if (args == NULL) {
+        return 0;
+    }
 
     if(threads == NULL || args == NULL ) {
         free(threads);
@@ -212,8 +214,8 @@ static int setup_chunks(char *filename,char *target, struct worker_args **args_o
         args[i].filename = filename;
         args[i].target = target;
         args[i].id = i;
-        args[i].start = i * chunk;
-        args[i].end = (i == nthreads - 1) ? file_size : (i + 1) * chunk;
+        args[i].start = i * chunk_size;
+        args[i].end = (i == nthreads - 1) ? file_size : (i + 1) * chunk_size;
     }
 
     *args_out = args;
