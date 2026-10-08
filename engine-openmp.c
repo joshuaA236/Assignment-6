@@ -231,7 +231,7 @@ static int setup_chunks(char *filename,char *target, struct worker_args **args_o
 //             pthread_join(threads[i], NULL);
 //         }
 //     }
-}
+// }
 
 int search_count(char *filename, char *target) {
     struct worker_args *args;
