@@ -174,7 +174,7 @@ static void scan_chunk(struct worker_args *args, int collect_instances) {
 
 }
 
-static int setup_chunks(char *filename,char *target, pthread_t **threads_out, struct worker_args **args_out, long *nthreads_out) {
+static int setup_chunks(char *filename,char *target, struct worker_args **args_out, long *nthreads_out) {
     struct stat file_info;
     long file_size;
     long nthreads;
@@ -221,7 +221,7 @@ static int setup_chunks(char *filename,char *target, pthread_t **threads_out, st
     return 1;
 }
 
-static void run_workers(pthread_t *threads, struct worker_args * args,  long nthreads, void *(*worker) (void *)) {
+static void run_workers (struct worker_args * args,  long nthreads, void *(*worker) (void *)) {
     for(long i = 0; i < nthreads; i++) {
         if (pthread_create(&threads[i], NULL, worker, &args[i]) == 0) {
             args[i].started = 1;
@@ -239,7 +239,7 @@ static void run_workers(pthread_t *threads, struct worker_args * args,  long nth
 }
 
 int search_count(char *filename, char *target) {
-    long worker_args;
+    struct worker_args *args;
     long nthreads;
     int total = 0;
     int failed = 0;
@@ -250,7 +250,7 @@ int search_count(char *filename, char *target) {
 
 #pragma omp parallel for num_threads(nthreads) schedule(static)
     for( long i = 0; i < nthreads; i++) {
-        scan_chunk( &args[i] end, 0);
+        scan_chunk(&args[i], 0);
     }
 
     for (long i = 0; i < nthreads; i++) {
@@ -281,7 +281,7 @@ struct count_result search_instance(char *filename,char *target){
 #pragma omp parallel for num_threads(nthreads) schedule(static)
     for( int i = 0; i < nthreads; i++) {
         
-        scan_chunk( &args[i] end, 1);
+        scan_chunk( &args[i], 1);
     }
 
     for (long i = 0; i < nthreads; i++) {
@@ -302,8 +302,8 @@ struct count_result search_instance(char *filename,char *target){
 
     if (!failed) {
         for(long i = 0; i < nthreads; i++) {
-            for(int j = 0; j args[i].result.count; j++) {
-                result.instance[result.count++] = args[i].result.instances[j];
+            for(int j = 0; j < args[i].result.count; j++) {
+                result.instances[result.count++] = args[i].result.instances[j];
                 args[i].result.instances[j] = NULL;
             }
         }
