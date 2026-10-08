@@ -112,10 +112,12 @@ static int append_instance(struct worker_args * args, const char * line) {
 
 static void scan_chunk(struct worker_args *args, int collect_instances) {
     FILE *file = fopen(args-> filename, "r");
-    char *line = malloc(MAX_LINE_LENGTH);
+    char *line;
     size_t capacity = MAX_LINE_LENGTH;
     ssize_t line_length;
-
+    long position = args-> start;
+    
+    line = malloc(MAX_LINE_LENGTH);
     if (line == NULL) {
         fclose(file);
         args-> failed =1;
