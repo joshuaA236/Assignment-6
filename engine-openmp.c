@@ -6,16 +6,30 @@
 #include <sys/stat.h>
 #include <omp.h>
 #include <ctype.h>
+#include <pthread.h>
 
 #define MAX_LINE_LENGTH 256
 
 #define MAX_THREADS 4
 
 struct chunk_result {
-    int: count;
+    struct: count;
     struct count_result instances;
     size_t capacity;
     int failed;
+};
+
+struct worker_args {
+    char *filename;
+    char *target;
+    long id;
+    long start;
+    long end;
+    int count;
+    struct count_result result;
+    size_t capacity;
+    int failed;
+    int started;
 };
 
 static int count_line_matches(const char *line, const char *target) {

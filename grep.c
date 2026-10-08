@@ -14,8 +14,10 @@ int main(int argc, char** argv) {
     char *filename;
     char *target;
 
-    if(argc != 4) {
-        printf("Incorrect number of arguments. Expected: ./build/grep <MODE=count|instance> <input_file> <target_word>\n");
+    if (argc != 4) {
+        fprintf(stderr,
+                "Usage: %s <count|instance> <input_file> <target_word>\n",
+                argv[0]);
         return 1;
     }
 
