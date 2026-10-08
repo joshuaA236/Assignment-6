@@ -187,7 +187,7 @@ static int setup_chunks(char *filename,char *target, struct worker_args **args_o
 
     file_size = (long) file_info.st_size;
     nthreads = file_size < MAX_THREADS ? file_size : MAX_THREADS;
-    chunk = file_size / nthreads;
+    chunk_size = file_size / nthreads;
 
     threads = malloc((size_t)nthreads * sizeof(*threads));
     args = malloc((size_t)nthreads * sizeof(*args));
